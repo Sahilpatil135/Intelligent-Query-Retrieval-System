@@ -71,6 +71,10 @@ pip-wheel-metadata/
 *.manifest
 *.spec
 
+# Ignore all data files but keep the folder
+/data/*
+!/data/.gitkeep
+
 # Virtual envs
 venv/
 ENV/
