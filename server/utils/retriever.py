@@ -24,13 +24,13 @@ def query_documents(query: str, top_k: int = 3):
 
     return result.data  # [{id, content, metadata, embedding, distance}, ...]
 
-if __name__ == "__main__":
-    # q = "Define vulnerability?"
-    q = "Explain briefly the pattern of global population growth in recent times?"
-    results = query_documents(q, top_k=3)
-    print(f"\n🔎 Query: {q}\n")
-    for i, res in enumerate(results, start=1):
-        print(f"Result {i}:")
-        print(f"  Text     : {res['content'][:200]}...")
-        print(f"  Source   : {res['metadata'].get('source', 'N/A')}")
-        print(f"  Similarity : {res['distance']}\n")
+# if __name__ == "__main__":
+#     # q = "Define vulnerability?"
+#     q = "Explain briefly the pattern of global population growth in recent times?"
+#     results = query_documents(q, top_k=3)
+#     print(f"\n🔎 Query: {q}\n")
+#     for i, res in enumerate(results, start=1):
+#         print(f"Result {i}:")
+#         print(f"  Text     : {res['content'][:200]}...")
+#         print(f"  Source   : {res['metadata'].get('source', 'N/A')}")
+#         print(f"  Similarity : {res['distance']}\n")

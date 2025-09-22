@@ -1,13 +1,15 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from supabase import create_client
 from utils.document_loader import add_document_to_supabase_bytes
-from utils.llm_answer import generate_answer
+from utils.llm_answer import generate_answer_with_gemini
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -61,7 +63,7 @@ def query():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        res = generate_answer(query_text, top_k=top_k)
+        res = generate_answer_with_gemini(query_text, top_k=top_k)
         return jsonify(res)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

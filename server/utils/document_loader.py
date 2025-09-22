@@ -85,7 +85,7 @@ import io, os, uuid
 from typing import List
 from supabase import create_client, Client
 from sentence_transformers import SentenceTransformer
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 import docx
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
