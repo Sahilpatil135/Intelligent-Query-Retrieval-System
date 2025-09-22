@@ -82,6 +82,8 @@
 #     return {"answer": answer, "references": references}
 import os
 import google.generativeai as genai
+import markdown2
+from markupsafe import Markup
 from utils.retriever import query_documents
 from dotenv import load_dotenv
 
@@ -93,6 +95,15 @@ GEMINI_THINKING_BUDGET = int(os.getenv("GEMINI_THINKING_BUDGET", "0"))  # defaul
 
 # Configure the client
 genai.configure(api_key=GEMINI_API_KEY)
+
+def format_answer(raw_text: str) -> str:
+    """
+    Convert Gemini's markdown-ish text to styled HTML.
+    """
+    # Convert markdown to HTML
+    html = markdown2.markdown(raw_text)
+    # Wrap in Markup to mark safe for Flask
+    return Markup(html)
 
 def generate_answer_with_gemini(query: str, top_k: int = 3):
     """
@@ -113,6 +124,11 @@ Question:
 {query}
 
 Answer with references:
+
+Answer in clean Markdown with:
+- bold dates
+- each mitigation measure as a separate bullet line
+- paragraphs separated by blank lines
 """
 
     contents = prompt  # simpler: just pass prompt text
@@ -136,7 +152,13 @@ Answer with references:
         response = model.generate_content(contents)
 
     answer = response.text
+    answer_html = format_answer(answer)
 
-    references = [r['metadata'] for r in results]
+    # references = [r['metadata'] for r in results]
+    references = []
+    for r in results:
+        # e.g. if your retriever returns: {'metadata': {'doc_name': 'file1.pdf'}}
+        # you can adjust depending on how you store metadata
+        references.append(r['metadata'])
 
-    return {"answer": answer, "references": references}
+    return {"answer": answer_html, "references": references}
