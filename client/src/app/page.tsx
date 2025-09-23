@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import axios from "axios";
+import ReactMarkdown from "react-markdown";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -10,7 +11,8 @@ export default function Home() {
   const [previousQueries, setPreviousQueries] = useState<{ q: string, a: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
-  const [references, setReferences] = useState<{ doc_name: string; page?: number }[]>([]);
+  // const [references, setReferences] = useState<{ source: string; page?: number }[]>([]);
+  const [references, setReferences] = useState<string[]>([]);
 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +50,19 @@ export default function Home() {
         top_k: 3,
       });
       setAnswer(res.data.answer);
-      setReferences(res.data.references || []);
+
+      // extract unique file names from res.data.references
+      const uniqueSources: string[] = Array.from(
+        new Set(res.data.references.map((r: any) => {
+          // extract filename only, e.g. "DMMM QB IAT-1.pdf"
+          const parts = r.source.split(/[/\\]/); // handles / and \
+          return parts[parts.length - 1];
+        }))
+      );
+
+      setReferences(uniqueSources);
+
+      // setReferences(res.data.references || []);
       setPreviousQueries([{ q: query, a: res.data.answer }, ...previousQueries]);
       console.log(res.data);
     } catch (err) {
@@ -76,14 +90,21 @@ export default function Home() {
         <h2 className="text-lg font-semibold mb-3">Upload Document</h2>
         <div className="flex items-center justify-between">
           <input
+            id="fileUpload"
             type="file"
             accept=".pdf,.docx"
             onChange={handleFileChange}
-            className="text-gray-200"
+            className="hidden"
           />
+          <label
+            htmlFor="fileUpload"
+            className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white cursor-pointer"
+          >
+            Choose File
+          </label>
           <button
             onClick={handleUpload}
-            className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white"
+            className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white cursor-pointer"
           >
             Upload
           </button>
@@ -110,7 +131,11 @@ export default function Home() {
               </div>
               <div className="bg-gray-700 rounded-lg p-3">
                 <p className="font-semibold text-green-300">AI:</p>
-                <p>{item.a}</p>
+                {/* <p>{item.a}</p> */}
+                <div
+                  className="prose prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: item.a }}
+                />
               </div>
             </div>
           ))}
@@ -128,7 +153,7 @@ export default function Home() {
           <button
             onClick={handleQuery}
             disabled={loading}
-            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg disabled:bg-gray-500 text-white"
+            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg disabled:bg-gray-500 text-white cursor-pointer"
           >
             {loading ? "..." : "Send"}
           </button>
@@ -146,16 +171,22 @@ export default function Home() {
             className="prose prose-invert max-w-none bg-gray-700 rounded-lg p-4"
             dangerouslySetInnerHTML={{ __html: answer }}
           />
+          {/* <div className="prose prose-invert max-w-none bg-gray-700 rounded-lg p-4">
+            <ReactMarkdown>{answer}</ReactMarkdown>
+          </div> */}
 
           {/* Show references */}
           {references.length > 0 && (
             <div className="mt-4 text-sm text-gray-400">
               <p className="font-semibold">Sources:</p>
               <ul className="list-disc list-inside">
-                {references.map((ref, idx) => (
+                {/* {references.map((ref, idx) => (
                   <li key={idx}>
-                    {ref.doc_name} {ref.page && `(page ${ref.page})`}
+                    {ref.source.replace("../data\\", "")}
                   </li>
+                ))} */}
+                {references.map((src, idx) => (
+                  <li key={idx}>{src}</li>
                 ))}
               </ul>
             </div>
