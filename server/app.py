@@ -12,8 +12,8 @@ app = Flask(__name__)
 CORS(app)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)    
 
 BUCKET_NAME = "documents"  # private bucket
 
@@ -35,12 +35,19 @@ def upload_document():
 
     # Upload file to Supabase Storage bucket (private)
     upload_res = supabase.storage.from_(BUCKET_NAME).upload(file_name, file_bytes)
-    if upload_res and upload_res.get("error"):
-        return jsonify({"error": upload_res["error"]["message"]}), 500
-
+    # if upload_res.error:
+    #     # return jsonify({"error": upload_res["error"]["message"]}), 500
+    #     return jsonify({"error": upload_res.error.get("message", "Upload failed")}), 500
+    
+    # if upload_res.error is not None:  
+    #     return jsonify({"error": getattr(upload_res.error, "message", str(upload_res.error))}), 500
+    if hasattr(upload_res, "error") and upload_res.error:
+        return jsonify({"error": upload_res.error.get("message", "Upload failed")}), 500
+    
     # Generate a signed URL for the file (valid for 1 hour)
     signed_url_res = supabase.storage.from_(BUCKET_NAME).create_signed_url(file_name, 3600)
-    signed_url = signed_url_res.get("signedURL") if signed_url_res else None
+    # signed_url = signed_url_res.get("signedURL") if signed_url_res else None
+    signed_url = signed_url_res.get("signedURL") if isinstance(signed_url_res, dict) else None
 
     try:
         # Ingest file into Supabase Vector directly from bytes
