@@ -117,7 +117,7 @@ export default function Home() {
       {/* Chat Section */}
       <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow p-6 flex flex-col space-y-4">
         {/* Previous Queries */}
-        <div className="flex-1 overflow-y-auto max-h-96 space-y-4 pr-2">
+        <div className="flex-1 overflow-y-auto max-h-96 space-y-4 pr-2 custom-scrollbar">
           {previousQueries.length === 0 && (
             <p className="text-center text-gray-400">
               No previous queries yet. Start asking!
