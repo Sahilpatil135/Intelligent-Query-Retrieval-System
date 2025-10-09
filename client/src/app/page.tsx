@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
 export default function Home() {
@@ -14,6 +16,29 @@ export default function Home() {
   // const [references, setReferences] = useState<{ source: string; page?: number }[]>([]);
   const [references, setReferences] = useState<string[]>([]);
 
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Get current user
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        router.push("/login");  //  redirect to login if not authenticated
+      } else {
+        setUser(data.user);     // stores user uuid
+      }
+    };
+    getUser();
+  }, [router]);
+
+  if (!user) return <div>Loading...</div>;
+
+  // Function to get the auth token to send to backend
+  const getAuthToken = async (): Promise<string | null> => {
+    const session = await supabase.auth.getSession();
+    return session.data.session?.access_token || null;
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -27,12 +52,25 @@ export default function Home() {
       return;
     }
     setUploadStatus("Uploading...");
-    const formData = new FormData();
-    formData.append("file", file);
+
     try {
+      const token = await getAuthToken();
+      if (!token) {
+        setUploadStatus("User not authenticated. Please log in again.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("user_id", user.id); // send user id to backend
+
       const res = await axios.post("http://127.0.0.1:5000/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data"
+        },
       });
+
       setUploadStatus("File uploaded & embedded successfully");
       console.log(res.data);
     } catch (err) {
@@ -44,11 +82,20 @@ export default function Home() {
   const handleQuery = async () => {
     if (!query.trim()) return;
     setLoading(true);
+
     try {
+      const token = await getAuthToken();
+      if (!token) {
+        setAnswer("User not authenticated. Please log in again.");
+        return;
+      }
+
       const res = await axios.post("http://127.0.0.1:5000/query", {
         query,
         top_k: 3,
-      });
+      },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setAnswer(res.data.answer);
 
       // extract unique file names from res.data.references
@@ -75,12 +122,16 @@ export default function Home() {
 
   const hasHistory = previousQueries.length > 0 || answer;
 
+
   return (
     <div
       className={`min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center px-4 transition-all ${hasHistory ? "justify-start pt-8" : "justify-center"
         }`}
     >
       {/* Header */}
+      <h1 className="text-2xl font-semibold mb-4">
+        Welcome, {user.email} 👋
+      </h1>
       <h1 className="text-4xl font-bold mt-6 mb-6 text-center bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
         Ask Anything
       </h1>

@@ -99,6 +99,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
+
 def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
@@ -106,6 +107,7 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
         length_function=len,
     )
     return splitter.split_text(text)
+
 
 def process_file_bytes(file_bytes: bytes, file_name: str) -> str:
     ext = os.path.splitext(file_name)[1].lower()
@@ -118,14 +120,16 @@ def process_file_bytes(file_bytes: bytes, file_name: str) -> str:
     else:
         return file_bytes.decode("utf-8")
 
-def add_document_to_supabase_bytes(file_bytes: bytes, file_name: str):
+
+def add_document_to_supabase_bytes(file_bytes: bytes, file_name: str, user_id: str):
     text = process_file_bytes(file_bytes, file_name)
     chunks = chunk_text(text)
     embeddings = model.encode(chunks).tolist()
 
     for i, chunk in enumerate(chunks):
-        metadata = {"source": file_name, "chunk_id": str(uuid.uuid4())}
+        metadata = {"source": file_name, "chunk_id": str(uuid.uuid4()), "user_id": user_id}
         supabase.table("documents").insert({
+            "user_id": user_id,
             "content": chunk,
             "metadata": metadata,
             "embedding": embeddings[i]

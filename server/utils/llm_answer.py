@@ -100,17 +100,16 @@ def format_answer(raw_text: str) -> str:
     """
     Convert Gemini's markdown-ish text to styled HTML.
     """
-    # Convert markdown to HTML
     html = markdown2.markdown(raw_text)
     # Wrap in Markup to mark safe for Flask
     return Markup(html)
 
-def generate_answer_with_gemini(query: str, top_k: int = 3):
+def generate_answer_with_gemini(query: str, user_id: str, top_k: int = 3):
     """
     Retrieve top_k chunks, then call Gemini 2.5 Flash API to generate answer
     """
     # Step 1: retrieve
-    results = query_documents(query, top_k=top_k)
+    results = query_documents(query, user_id=user_id, top_k=top_k)
     context = "\n\n".join([r['content'] for r in results])
 
     # Step 2: build prompt
@@ -126,9 +125,9 @@ Question:
 Answer with references:
 
 Answer in clean Markdown with:
-- bold dates
-- each mitigation measure as a separate bullet line
-- paragraphs separated by blank lines
+- Bold important terms
+- Bullet points where suitable
+- Separate paragraphs with blank lines
 """
 
     contents = prompt  # simpler: just pass prompt text
@@ -151,6 +150,7 @@ Answer in clean Markdown with:
     else:
         response = model.generate_content(contents)
 
+    # Step 4: Format answer
     answer = response.text
     answer_html = format_answer(answer)
 
