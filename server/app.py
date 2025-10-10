@@ -30,18 +30,49 @@ def verify_user(request):
     token = auth_header.split(" ")[1]
 
     try:
-        # Verify using Supabase’s JWKS (public keys)
-        jwks_url = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json"
-        jwks = requests.get(jwks_url).json()
+        # Try legacy JWT secret first (most reliable for Supabase)
+        legacy_jwt_secret = os.getenv("SUPABASE_JWT_SECRET")
+        if legacy_jwt_secret:
+            try:
+                # Try with audience validation first
+                payload = jwt.decode(token, legacy_jwt_secret, algorithms=["HS256"], audience="authenticated")
+                return payload, None
+            except jwt.InvalidAudienceError:
+                # Try without audience validation
+                try:
+                    payload = jwt.decode(token, legacy_jwt_secret, algorithms=["HS256"], audience=None)
+                    return payload, None
+                except Exception as legacy_error:
+                    print("Legacy JWT verification failed:", legacy_error)
+            except Exception as legacy_error:
+                print("Legacy JWT verification failed:", legacy_error)
+        
+        # Fallback: Try JWKS verification (modern approach)
+        try:
+            jwks_url = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+            jwks = requests.get(jwks_url, timeout=10).json()
 
-        unverified_header = jwt.get_unverified_header(token)
-        key = next((k for k in jwks["keys"] if k["kid"] == unverified_header["kid"]), None)
-        if not key:
-            return None, "Invalid token key"
+            if not jwks.get("keys"):
+                raise Exception("No JWKS keys available")
 
-        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
-        payload = jwt.decode(token, public_key, algorithms=["RS256"], audience=None)
-        return payload, None
+            unverified_header = jwt.get_unverified_header(token)
+            key = next((k for k in jwks["keys"] if k["kid"] == unverified_header["kid"]), None)
+            if not key:
+                raise Exception("Invalid token key")
+
+            public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
+            # Try with audience validation first
+            try:
+                payload = jwt.decode(token, public_key, algorithms=["RS256"], audience="authenticated")
+                return payload, None
+            except jwt.InvalidAudienceError:
+                # Try without audience validation
+                payload = jwt.decode(token, public_key, algorithms=["RS256"], audience=None)
+                return payload, None
+        except Exception as jwks_error:
+            print("JWKS verification failed:", jwks_error)
+            raise jwks_error
+            
     except Exception as e:
         print("Token verification failed:", e)
         return None, str(e)
@@ -110,10 +141,13 @@ def upload_document():
 
 @app.route("/query", methods=["POST"])
 def query():
-
+    print("Query endpoint called")
+    print("Headers:", dict(request.headers))
+    
     # 1. Verify user
     user, error = verify_user(request)
     if error:
+        print("Authentication failed:", error)
         return jsonify({"error": "Unauthorized", "details": error}), 401
     user_id = user["sub"]  # Supabase user UUID
     print("Querying for user:", user_id)
