@@ -32,6 +32,12 @@ export default function Home() {
     getUser();
   }, [router]);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    router.push("/login");
+  };
+
   if (!user) return <div>Loading...</div>;
 
   // Function to get the auth token to send to backend
@@ -129,9 +135,22 @@ export default function Home() {
         }`}
     >
       {/* Header */}
-      <h1 className="text-2xl font-semibold mb-4">
-        Welcome, {user.email} 👋
-      </h1>
+      <button
+          onClick={handleLogout}
+          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white absolute top-8 right-8 cursor-pointer"
+        >
+          Logout
+        </button>
+      {/* <div className="w-full max-w-5xl flex justify-between items-center mb-6"> */}
+        <h1 className="text-2xl font-semibold mb-6 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">Welcome, {user.email}</h1>
+        {/* <button
+          onClick={handleLogout}
+          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white"
+        >
+          Logout
+        </button> */}
+      {/* </div> */}
+
       <h1 className="text-4xl font-bold mt-6 mb-6 text-center bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
         Ask Anything
       </h1>
@@ -160,6 +179,13 @@ export default function Home() {
             Upload
           </button>
         </div>
+        {/* Show selected file name */}
+        {file && (
+          <p className="text-sm text-gray-300 mt-2">
+            Selected: <span className="text-purple-400 font-medium">{file.name}</span>
+          </p>
+        )}
+
         {uploadStatus && (
           <p className="text-sm text-gray-300 mt-2">{uploadStatus}</p>
         )}
