@@ -121,13 +121,16 @@ def process_file_bytes(file_bytes: bytes, file_name: str) -> str:
         return file_bytes.decode("utf-8")
 
 
-def add_document_to_supabase_bytes(file_bytes: bytes, file_name: str, user_id: str):
+def add_document_to_supabase_bytes(file_bytes: bytes, file_name: str, user_id: str, file_url: str = None):
+    
+    clean_name = os.path.basename(file_name)
+    
     text = process_file_bytes(file_bytes, file_name)
     chunks = chunk_text(text)
     embeddings = model.encode(chunks).tolist()
 
     for i, chunk in enumerate(chunks):
-        metadata = {"source": file_name, "chunk_id": str(uuid.uuid4()), "user_id": user_id}
+        metadata = {"source": clean_name, "chunk_id": str(uuid.uuid4()), "user_id": user_id, "file_url": file_url}
         supabase.table("documents").insert({
             "user_id": user_id,
             "content": chunk,

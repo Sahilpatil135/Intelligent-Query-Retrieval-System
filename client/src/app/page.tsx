@@ -19,6 +19,10 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
+  const [showDocs, setShowDocs] = useState(false);
+  // const [userDocs, setUserDocs] = useState<{ name: string; url?: string }[]>([]);
+  const [documents, setDocuments] = useState<{ name: string; url: string }[]>([]);
+
   useEffect(() => {
     // Get current user
     const getUser = async () => {
@@ -31,6 +35,42 @@ export default function Home() {
     };
     getUser();
   }, [router]);
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("documents")
+          .select("metadata")
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        // Extract unique file names + URLs
+        const uniqueDocsMap = new Map<string, string>();
+
+        data.forEach((item: any) => {
+          const meta = item.metadata || {};
+          const fileName = meta.source;
+          const fileUrl = meta.file_url;
+          if (fileName && !uniqueDocsMap.has(fileName)) {
+            uniqueDocsMap.set(fileName, fileUrl);
+          }
+        });
+
+        const uniqueDocs = Array.from(uniqueDocsMap, ([name, url]) => ({ name, url }));
+        setDocuments(uniqueDocs);
+      } catch (err) {
+        console.error("Error fetching documents:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, [user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -128,6 +168,33 @@ export default function Home() {
 
   const hasHistory = previousQueries.length > 0 || answer;
 
+  // Function to fetch user's uploaded documents
+  // const fetchUserDocuments = async () => {
+  //   if (!user?.id) return;
+  //   const { data, error } = await supabase
+  //     .from("documents") // make sure your table is named 'documents'
+  //     .select("metadata->>file_name, metadata->>file_url")
+  //     .eq("user_id", user.id);
+
+  //   if (error) {
+  //     console.error("Error fetching documents:", error);
+  //   } else {
+  //     const docs = data.map((doc: any) => ({
+  //       name: doc["metadata->>file_name"] || "Unnamed file",
+  //       url: doc["metadata->>file_url"] || null,
+  //     }));
+  //     setUserDocs(docs);
+  //   }
+  // };
+
+  // // Toggle sidebar
+  // const handleToggleDocs = async () => {
+  //   if (!showDocs) {
+  //     await fetchUserDocuments();
+  //   }
+  //   setShowDocs(!showDocs);
+  // };
+
 
   return (
     <div
@@ -135,15 +202,79 @@ export default function Home() {
         }`}
     >
       {/* Header */}
+      {/* Sidebar toggle button */}
+      {/* <button
+        onClick={handleToggleDocs}
+        className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white absolute top-8 left-8 cursor-pointer"
+      >
+        {showDocs ? "Hide Docs" : "My Documents"}
+      </button>
+
+      {/* Sidebar listing *
+      {showDocs && (
+        <div className="absolute top-20 left-8 bg-gray-800 rounded-xl shadow-lg p-4 w-64 max-h-96 overflow-y-auto border border-gray-700">
+          <h3 className="text-lg font-semibold mb-3">Your Documents</h3>
+          {userDocs.length === 0 ? (
+            <p className="text-gray-400 text-sm">No documents uploaded yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {userDocs.map((doc, idx) => (
+                <li
+                  key={idx}
+                  className="bg-gray-700 hover:bg-gray-600 rounded-lg p-2 text-sm text-gray-200 cursor-pointer"
+                  onClick={() => {
+                    if (doc.url) window.open(doc.url, "_blank");
+                  }}
+                >
+                  📄 {doc.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )} */}
+
+      {/* Sidebar Toggle Button */}
       <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white absolute top-8 right-8 cursor-pointer"
-        >
-          Logout
-        </button>
+        onClick={() => setShowDocs((prev) => !prev)}
+        className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white absolute top-8 left-8 cursor-pointer z-20"
+      >
+        {showDocs ? "Hide Docs" : "My Documents"}
+      </button>
+
+      {/* Sidebar List (toggle visible) */}
+      {showDocs && (
+        <div className="absolute top-20 left-8 bg-gray-800 rounded-xl shadow-lg p-4 w-64 max-h-96 overflow-y-auto border border-gray-700 z-10">
+          <h3 className="text-lg font-semibold mb-3">Your Documents</h3>
+          {loading ? (
+            <p className="text-gray-400 text-sm">Loading...</p>
+          ) : documents.length === 0 ? (
+            <p className="text-gray-400 text-sm">No documents uploaded yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {documents.map((doc, idx) => (
+                <li
+                  key={idx}
+                  className="bg-gray-700 hover:bg-gray-600 rounded-lg p-2 text-sm text-gray-200 cursor-pointer"
+                  onClick={() => doc.url && window.open(doc.url, "_blank")}
+                >
+                  📄 {doc.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <button
+        onClick={handleLogout}
+        className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white absolute top-8 right-8 cursor-pointer"
+      >
+        Logout
+      </button>
       {/* <div className="w-full max-w-5xl flex justify-between items-center mb-6"> */}
-        <h1 className="text-2xl font-semibold mb-6 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">Welcome, {user.email}</h1>
-        {/* <button
+      <h1 className="text-2xl font-semibold pt-1 mb-6 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">Welcome, {user.email}</h1>
+      {/* <button
           onClick={handleLogout}
           className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white"
         >
@@ -157,7 +288,7 @@ export default function Home() {
 
       {/* Upload Section */}
       <div className="w-full max-w-lg bg-gray-800 rounded-2xl shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-3">Upload Document</h2>
+        <h2 className="text-lg font-semibold mb-3">Upload Document <span className="text-lg font-normal pl-4">(limit 5 Mb)</span></h2>
         <div className="flex items-center justify-between">
           <input
             id="fileUpload"

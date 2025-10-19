@@ -127,7 +127,7 @@ def upload_document():
     # 7️. Add to Supabase Vector (tagged with user_id)
     try:
         # Ingest file into Supabase Vector directly from bytes
-        res_ingest = add_document_to_supabase_bytes(file_bytes, path, user_id=user_id)
+        res_ingest = add_document_to_supabase_bytes(file_bytes, path, user_id=user_id, file_url=signed_url)
         return jsonify({
             "message": "Document uploaded successfully",
             "user_id": user_id,
