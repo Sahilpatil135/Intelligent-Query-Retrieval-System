@@ -273,7 +273,7 @@ export default function Home() {
         Logout
       </button>
       {/* <div className="w-full max-w-5xl flex justify-between items-center mb-6"> */}
-      <h1 className="text-2xl font-semibold pt-1 mb-6 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">Welcome, {user.email}</h1>
+      <h1 className="text-2xl font-semibold pt-1 mt-12 mb-6 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent ">Welcome, {user.email}</h1>
       {/* <button
           onClick={handleLogout}
           className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white"

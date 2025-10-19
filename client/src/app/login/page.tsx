@@ -39,10 +39,11 @@ export default function AuthPage() {
 
         //     <p className="text-sm text-gray-600">{message}</p>
         // </div>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1e1e2f] to-[#11121a] p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-[#1b1b28] p-4">
+            <img src="./image3.png" width={300} alt="" className="mb-6" />
             <div className="bg-[#1f1f2f] p-8 rounded-2xl shadow-lg w-full max-w-md">
                 <h1 className="text-3xl font-bold text-center text-purple-400 mb-6">Welcome Back</h1>
-                
+
                 <input
                     type="email"
                     placeholder="Email"
@@ -50,7 +51,7 @@ export default function AuthPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                 />
-                
+
                 <input
                     type="password"
                     placeholder="Password"
