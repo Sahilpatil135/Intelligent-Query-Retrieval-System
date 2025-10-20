@@ -23,22 +23,7 @@ export default function AuthPage() {
         }
     };
 
-    return (
-        // <div className="flex flex-col items-center gap-4 p-8">
-        //     <h1 className="text-2xl font-bold">Login / Sign Up</h1>
-        //     <input type="email" placeholder="Email" className="border p-2 rounded w-64" value={email} onChange={(e) => setEmail(e.target.value)} />
-        //     <input type="password" placeholder="Password" className="border p-2 rounded w-64" value={password} onChange={(e) => setPassword(e.target.value)} />
-        //     <div className="flex gap-2">
-        //         <button onClick={handleLogin} className="bg-blue-600 text-white px-4 py-2 rounded">
-        //             Login
-        //         </button>
-        //         <button onClick={handleSignup} className="bg-green-600 text-white px-4 py-2 rounded">
-        //             Sign Up
-        //         </button>
-        //     </div>
-
-        //     <p className="text-sm text-gray-600">{message}</p>
-        // </div>
+    return (        
         <div className="min-h-screen flex flex-col items-center justify-center bg-[#1b1b28] p-4">
             <img src="./image3.png" width={300} alt="" className="mb-6" />
             <div className="bg-[#1f1f2f] p-8 rounded-2xl shadow-lg w-full max-w-md">

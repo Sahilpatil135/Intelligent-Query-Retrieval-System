@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import ReactMarkdown from "react-markdown";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,14 +12,12 @@ export default function Home() {
   const [previousQueries, setPreviousQueries] = useState<{ q: string, a: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
-  // const [references, setReferences] = useState<{ source: string; page?: number }[]>([]);
   const [references, setReferences] = useState<string[]>([]);
 
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
   const [showDocs, setShowDocs] = useState(false);
-  // const [userDocs, setUserDocs] = useState<{ name: string; url?: string }[]>([]);
   const [documents, setDocuments] = useState<{ name: string; url: string }[]>([]);
 
   useEffect(() => {
@@ -73,43 +70,6 @@ export default function Home() {
   useEffect(() => {
     fetchDocuments();
   }, [user]);
-
-
-  // useEffect(() => {
-  //   const fetchDocuments = async () => {
-  //     if (!user) return;
-  //     setLoading(true);
-  //     try {
-  //       const { data, error } = await supabase
-  //         .from("documents")
-  //         .select("metadata")
-  //         .eq("user_id", user.id);
-
-  //       if (error) throw error;
-
-  //       // Extract unique file names + URLs
-  //       const uniqueDocsMap = new Map<string, string>();
-
-  //       data.forEach((item: any) => {
-  //         const meta = item.metadata || {};
-  //         const fileName = meta.source;
-  //         const fileUrl = meta.file_url;
-  //         if (fileName && !uniqueDocsMap.has(fileName)) {
-  //           uniqueDocsMap.set(fileName, fileUrl);
-  //         }
-  //       });
-
-  //       const uniqueDocs = Array.from(uniqueDocsMap, ([name, url]) => ({ name, url }));
-  //       setDocuments(uniqueDocs);
-  //     } catch (err) {
-  //       console.error("Error fetching documents:", err);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchDocuments();
-  // }, [user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -168,6 +128,11 @@ export default function Home() {
 
   const handleQuery = async () => {
     if (!query.trim()) return;
+
+    if (documents.length === 0) {
+      setAnswer("<p class='text-yellow-400 font-semibold'>⚠️ You have not uploaded any documents yet. Please upload one first.</p>");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -183,12 +148,18 @@ export default function Home() {
       },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      if (res.data.error) {
+        setAnswer(res.data.message || "You have not uploaded any documents yet. Please upload one first.");
+        setReferences([]);
+        return;
+      }
+
       setAnswer(res.data.answer);
 
       // extract unique file names from res.data.references
       const uniqueSources: string[] = Array.from(
-        new Set(res.data.references.map((r: any) => {
-          // extract filename only, e.g. "DMMM QB IAT-1.pdf"
+        new Set(res.data.references.map((r: any) => {          
           const parts = r.source.split(/[/\\]/); // handles / and \
           return parts[parts.length - 1];
         }))
@@ -196,12 +167,15 @@ export default function Home() {
 
       setReferences(uniqueSources);
 
-      // setReferences(res.data.references || []);
       setPreviousQueries([{ q: query, a: res.data.answer }, ...previousQueries]);
       console.log(res.data);
-    } catch (err) {
+    } catch (err: any) {  
       console.error(err);
-      setAnswer("Error retrieving answer");
+      const backendMsg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Error retrieving answer";
+      setAnswer(backendMsg);
       setReferences([]);
     }
     setLoading(false);
@@ -209,71 +183,13 @@ export default function Home() {
 
   const hasHistory = previousQueries.length > 0 || answer;
 
-  // Function to fetch user's uploaded documents
-  // const fetchUserDocuments = async () => {
-  //   if (!user?.id) return;
-  //   const { data, error } = await supabase
-  //     .from("documents") // make sure your table is named 'documents'
-  //     .select("metadata->>file_name, metadata->>file_url")
-  //     .eq("user_id", user.id);
-
-  //   if (error) {
-  //     console.error("Error fetching documents:", error);
-  //   } else {
-  //     const docs = data.map((doc: any) => ({
-  //       name: doc["metadata->>file_name"] || "Unnamed file",
-  //       url: doc["metadata->>file_url"] || null,
-  //     }));
-  //     setUserDocs(docs);
-  //   }
-  // };
-
-  // // Toggle sidebar
-  // const handleToggleDocs = async () => {
-  //   if (!showDocs) {
-  //     await fetchUserDocuments();
-  //   }
-  //   setShowDocs(!showDocs);
-  // };
-
 
   return (
     <div
       className={`min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center px-4 transition-all ${hasHistory ? "justify-start pt-8" : "justify-center"
         }`}
     >
-      {/* Header */}
-      {/* Sidebar toggle button */}
-      {/* <button
-        onClick={handleToggleDocs}
-        className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white absolute top-8 left-8 cursor-pointer"
-      >
-        {showDocs ? "Hide Docs" : "My Documents"}
-      </button>
-
-      {/* Sidebar listing *
-      {showDocs && (
-        <div className="absolute top-20 left-8 bg-gray-800 rounded-xl shadow-lg p-4 w-64 max-h-96 overflow-y-auto border border-gray-700">
-          <h3 className="text-lg font-semibold mb-3">Your Documents</h3>
-          {userDocs.length === 0 ? (
-            <p className="text-gray-400 text-sm">No documents uploaded yet.</p>
-          ) : (
-            <ul className="space-y-2">
-              {userDocs.map((doc, idx) => (
-                <li
-                  key={idx}
-                  className="bg-gray-700 hover:bg-gray-600 rounded-lg p-2 text-sm text-gray-200 cursor-pointer"
-                  onClick={() => {
-                    if (doc.url) window.open(doc.url, "_blank");
-                  }}
-                >
-                  📄 {doc.name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )} */}
+      {/* Header */}    
 
       {/* Sidebar Toggle Button */}
       <button
@@ -285,7 +201,7 @@ export default function Home() {
 
       {/* Sidebar List (toggle visible) */}
       {showDocs && (
-        <div className="absolute top-20 left-8 bg-gray-800 rounded-xl shadow-lg p-4 w-64 max-h-96 overflow-y-auto border border-gray-700 z-10">
+        <div className="absolute top-20 left-8 bg-gray-800 rounded-xl shadow-lg p-4 w-64 max-h-96 overflow-y-auto border border-gray-700 z-10 custom-scrollbar">
           <h3 className="text-lg font-semibold mb-3">Your Documents</h3>
           {loading ? (
             <p className="text-gray-400 text-sm">Loading...</p>
@@ -297,7 +213,8 @@ export default function Home() {
                 <li
                   key={idx}
                   className="bg-gray-700 hover:bg-gray-600 rounded-lg p-2 text-sm text-gray-200 cursor-pointer"
-                  onClick={() => doc.url && window.open(doc.url, "_blank")}
+                  // onClick={() => doc.url && window.open(doc.url, "_blank")}
+                  onClick={() => doc.url && window.open(`${doc.url}?download=false`, "_blank")}
                 >
                   📄 {doc.name}
                 </li>
@@ -387,8 +304,7 @@ export default function Home() {
                 <p>{item.q}</p>
               </div>
               <div className="bg-gray-700 rounded-lg p-3">
-                <p className="font-semibold text-green-300">AI:</p>
-                {/* <p>{item.a}</p> */}
+                <p className="font-semibold text-green-300">AI:</p>                
                 <div
                   className="prose prose-invert max-w-none"
                   dangerouslySetInnerHTML={{ __html: item.a }}
@@ -421,28 +337,19 @@ export default function Home() {
       {
         answer && (
           <div className="w-full max-w-2xl bg-gray-800 rounded-2xl shadow p-6 mt-6">
-            <h2 className="text-lg font-semibold mb-3">Latest Answer</h2>
-            {/* <div className="bg-gray-700 rounded-lg p-4">{answer}</div> */}
+            <h2 className="text-lg font-semibold mb-3">Latest Answer</h2>            
 
             {/* Render Markdown/HTML answer */}
             <div
               className="prose prose-invert max-w-none bg-gray-700 rounded-lg p-4"
               dangerouslySetInnerHTML={{ __html: answer }}
-            />
-            {/* <div className="prose prose-invert max-w-none bg-gray-700 rounded-lg p-4">
-            <ReactMarkdown>{answer}</ReactMarkdown>
-          </div> */}
+            />            
 
             {/* Show references */}
             {references.length > 0 && (
               <div className="mt-4 text-sm text-gray-400">
                 <p className="font-semibold">Sources:</p>
-                <ul className="list-disc list-inside">
-                  {/* {references.map((ref, idx) => (
-                  <li key={idx}>
-                    {ref.source.replace("../data\\", "")}
-                  </li>
-                ))} */}
+                <ul className="list-disc list-inside">                  
                   {references.map((src, idx) => (
                     <li key={idx}>{src}</li>
                   ))}

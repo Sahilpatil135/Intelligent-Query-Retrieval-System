@@ -110,18 +110,12 @@ def upload_document():
 
     # 5. Upload file to Supabase Storage bucket (private)
     upload_res = supabase.storage.from_(BUCKET_NAME).upload(file_name, file_bytes)
-    # if upload_res.error:
-    #     # return jsonify({"error": upload_res["error"]["message"]}), 500
-    #     return jsonify({"error": upload_res.error.get("message", "Upload failed")}), 500
-    
-    # if upload_res.error is not None:  
-    #     return jsonify({"error": getattr(upload_res.error, "message", str(upload_res.error))}), 500
+
     if hasattr(upload_res, "error") and upload_res.error:
         return jsonify({"error": upload_res.error.get("message", "Upload failed")}), 500
     
     # 6. Generate a signed URL for the file (valid for 1 hour)
     signed_url_res = supabase.storage.from_(BUCKET_NAME).create_signed_url(file_name, 3600)
-    # signed_url = signed_url_res.get("signedURL") if signed_url_res else None
     signed_url = signed_url_res.get("signedURL") if isinstance(signed_url_res, dict) else None
 
     # 7️. Add to Supabase Vector (tagged with user_id)
@@ -131,7 +125,6 @@ def upload_document():
         return jsonify({
             "message": "Document uploaded successfully",
             "user_id": user_id,
-            # "chunks": res_ingest["chunks"],  runs successfully
             "chunks": res_ingest.get("chunks", []),
             "file_signed_url": signed_url
         })
@@ -160,7 +153,15 @@ def query():
     if not query_text:
         return jsonify({"error": "No query provided"}), 400
 
-    # 3️. Generate context-aware answer for this user only
+    # 3. Check if user has documents uploaded
+    doc_res = supabase.table("documents").select("id").eq("user_id", user_id).limit(1).execute()
+    if not doc_res.data or len(doc_res.data) == 0:
+        return jsonify({
+            "error": "No documents found.",
+            "message": "You have not uploaded any documents yet. Please upload one first."
+        }), 400
+
+    # 4. Generate context-aware answer for this user only
     try:
         res = generate_answer_with_gemini(query_text, user_id=user_id, top_k=top_k)
         res["user_id"] = user_id
