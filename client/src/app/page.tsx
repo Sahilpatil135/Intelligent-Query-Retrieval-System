@@ -36,41 +36,80 @@ export default function Home() {
     getUser();
   }, [router]);
 
+  // Fetch user's uploaded documents
+  const fetchDocuments = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("documents")
+        .select("metadata")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      // Extract unique file names + URLs
+      const uniqueDocsMap = new Map<string, string>();
+
+      data.forEach((item: any) => {
+        const meta = item.metadata || {};
+        const fileName = meta.source;
+        const fileUrl = meta.file_url;
+        if (fileName && !uniqueDocsMap.has(fileName)) {
+          uniqueDocsMap.set(fileName, fileUrl);
+        }
+      });
+
+      const uniqueDocs = Array.from(uniqueDocsMap, ([name, url]) => ({ name, url }));
+      setDocuments(uniqueDocs);
+    } catch (err) {
+      console.error("Error fetching documents:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch on mount / when user changes
   useEffect(() => {
-    const fetchDocuments = async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("documents")
-          .select("metadata")
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-
-        // Extract unique file names + URLs
-        const uniqueDocsMap = new Map<string, string>();
-
-        data.forEach((item: any) => {
-          const meta = item.metadata || {};
-          const fileName = meta.source;
-          const fileUrl = meta.file_url;
-          if (fileName && !uniqueDocsMap.has(fileName)) {
-            uniqueDocsMap.set(fileName, fileUrl);
-          }
-        });
-
-        const uniqueDocs = Array.from(uniqueDocsMap, ([name, url]) => ({ name, url }));
-        setDocuments(uniqueDocs);
-      } catch (err) {
-        console.error("Error fetching documents:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDocuments();
   }, [user]);
+
+
+  // useEffect(() => {
+  //   const fetchDocuments = async () => {
+  //     if (!user) return;
+  //     setLoading(true);
+  //     try {
+  //       const { data, error } = await supabase
+  //         .from("documents")
+  //         .select("metadata")
+  //         .eq("user_id", user.id);
+
+  //       if (error) throw error;
+
+  //       // Extract unique file names + URLs
+  //       const uniqueDocsMap = new Map<string, string>();
+
+  //       data.forEach((item: any) => {
+  //         const meta = item.metadata || {};
+  //         const fileName = meta.source;
+  //         const fileUrl = meta.file_url;
+  //         if (fileName && !uniqueDocsMap.has(fileName)) {
+  //           uniqueDocsMap.set(fileName, fileUrl);
+  //         }
+  //       });
+
+  //       const uniqueDocs = Array.from(uniqueDocsMap, ([name, url]) => ({ name, url }));
+  //       setDocuments(uniqueDocs);
+  //     } catch (err) {
+  //       console.error("Error fetching documents:", err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchDocuments();
+  // }, [user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -119,6 +158,8 @@ export default function Home() {
 
       setUploadStatus("File uploaded & embedded successfully");
       console.log(res.data);
+      await fetchDocuments(); // Refresh document list after upload
+      setFile(null); // Clear selected file
     } catch (err) {
       console.error(err);
       setUploadStatus("Error uploading file");
@@ -272,15 +313,8 @@ export default function Home() {
       >
         Logout
       </button>
-      {/* <div className="w-full max-w-5xl flex justify-between items-center mb-6"> */}
+
       <h1 className="text-2xl font-semibold pt-1 mt-12 mb-6 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent ">Welcome, {user.email}</h1>
-      {/* <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white"
-        >
-          Logout
-        </button> */}
-      {/* </div> */}
 
       <h1 className="text-4xl font-bold mt-6 mb-6 text-center bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
         Ask Anything
@@ -310,11 +344,26 @@ export default function Home() {
             Upload
           </button>
         </div>
-        {/* Show selected file name */}
+        
+        {/* Show selected file name with cancel option */}
         {file && (
-          <p className="text-sm text-gray-300 mt-2">
-            Selected: <span className="text-purple-400 font-medium">{file.name}</span>
-          </p>
+          <div className="flex items-center justify-between mt-3 bg-gray-700 px-3 py-2 rounded-lg">
+            <p className="text-sm text-gray-200 truncate max-w-[70%]">
+              Selected: <span className="text-purple-400 font-medium">{file.name}</span>
+            </p>
+            <button
+              onClick={() => {
+                setFile(null);
+                const input = document.getElementById("fileUpload") as HTMLInputElement;
+                if (input) input.value = "";
+              }}
+
+              className="text-red-400 hover:text-red-500 text-lg font-bold px-2 cursor-pointer"
+              title="Cancel selected file"
+            >
+              ×
+            </button>
+          </div>
         )}
 
         {uploadStatus && (
@@ -369,38 +418,40 @@ export default function Home() {
       </div>
 
       {/* Latest Answer */}
-      {answer && (
-        <div className="w-full max-w-2xl bg-gray-800 rounded-2xl shadow p-6 mt-6">
-          <h2 className="text-lg font-semibold mb-3">Latest Answer</h2>
-          {/* <div className="bg-gray-700 rounded-lg p-4">{answer}</div> */}
+      {
+        answer && (
+          <div className="w-full max-w-2xl bg-gray-800 rounded-2xl shadow p-6 mt-6">
+            <h2 className="text-lg font-semibold mb-3">Latest Answer</h2>
+            {/* <div className="bg-gray-700 rounded-lg p-4">{answer}</div> */}
 
-          {/* Render Markdown/HTML answer */}
-          <div
-            className="prose prose-invert max-w-none bg-gray-700 rounded-lg p-4"
-            dangerouslySetInnerHTML={{ __html: answer }}
-          />
-          {/* <div className="prose prose-invert max-w-none bg-gray-700 rounded-lg p-4">
+            {/* Render Markdown/HTML answer */}
+            <div
+              className="prose prose-invert max-w-none bg-gray-700 rounded-lg p-4"
+              dangerouslySetInnerHTML={{ __html: answer }}
+            />
+            {/* <div className="prose prose-invert max-w-none bg-gray-700 rounded-lg p-4">
             <ReactMarkdown>{answer}</ReactMarkdown>
           </div> */}
 
-          {/* Show references */}
-          {references.length > 0 && (
-            <div className="mt-4 text-sm text-gray-400">
-              <p className="font-semibold">Sources:</p>
-              <ul className="list-disc list-inside">
-                {/* {references.map((ref, idx) => (
+            {/* Show references */}
+            {references.length > 0 && (
+              <div className="mt-4 text-sm text-gray-400">
+                <p className="font-semibold">Sources:</p>
+                <ul className="list-disc list-inside">
+                  {/* {references.map((ref, idx) => (
                   <li key={idx}>
                     {ref.source.replace("../data\\", "")}
                   </li>
                 ))} */}
-                {references.map((src, idx) => (
-                  <li key={idx}>{src}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+                  {references.map((src, idx) => (
+                    <li key={idx}>{src}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )
+      }
+    </div >
   );
 }
