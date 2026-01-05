@@ -83,6 +83,10 @@ def verify_user(request):
 def home():
     return jsonify({"status": "running", "message": "LLM Query-Retrieval Backend"})
 
+@app.route("/health")
+def health():
+    return jsonify({"status": "healthy"})
+
 @app.route("/upload", methods=["POST"])
 def upload_document():
     
