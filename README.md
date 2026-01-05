@@ -10,8 +10,8 @@ The application features a secure, multi-tenant design where each user's documen
 - **Secure User Authentication**: Employs Supabase for robust user signup, login, and session management.
 - **Private Document Storage**: Each user's documents are stored securely in a private Supabase Storage bucket and are only accessible by them.
 - **Vector-Based Retrieval**: Uploaded documents (PDF, DOCX) are chunked, converted into vector embeddings using `sentence-transformers`, and stored in a Supabase PostgreSQL database with the `pgvector` extension.
-- **Retrieval-Augmented Generation (RAG)**: When a user asks a question, the system retrieves the most relevant document chunks for that user and feeds them as context to Google's Gemini model to generate an accurate, source-grounded answer.
-- **Interactive Frontend**: A web interface built with Next.js and React allows users to manage documents, ask questions, and view their conversation history.
+- **Retrieval-Augmented Generation (RAG)**: When a user asks a question, the system retrieves the most relevant document chunks for that user and feeds them as context to Google's Gemini 2.5 Flash model to generate an accurate, source-grounded answer.
+- **Interactive Frontend**: A web interface built with Next.js allows users to manage documents, ask questions, and view their conversation history.
 - **Source Referencing**: The generated answers include references to the source documents used to formulate the response.
 
 ## Architecture
@@ -34,7 +34,7 @@ The system is composed of two main components: a client-side application and a s
 -   **Frontend**: Next.js, React, Tailwind CSS, an Axios
 -   **Backend**: Flask, Gunicorn
 -   **Vector Embeddings**: `sentence-transformers` (all-MiniLM-L6-v2)
--   **LLM**: Google Gemini
+-   **LLM**: Google Gemini 2.5 Flash
 -   **Database & Auth**: Supabase
 
 ## Setup and Installation
@@ -46,7 +46,7 @@ Follow these steps to set up and run the project locally.
 -   Python 3.8+ and Pip
 -   Node.js and npm (or a similar package manager)
 -   A Supabase account
--   A Google Gemini API key
+-   A Google Gemini 2.5 Flash API key
 
 ### 1. Supabase Project Setup
 
