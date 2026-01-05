@@ -136,11 +136,13 @@ Follow these steps to set up and run the project locally.
 
     # LLM API Key
     GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+    GEMINI_MODEL="YOUR_GEMINI_MODEL"
+    GEMINI_THINKING_BUDGET=0
     ```
 
 5.  Run the Flask server.
     ```bash
-    flask run
+    flask run / python app.py
     ```
     The backend will be running at `http://127.0.0.1:5000`.
 
