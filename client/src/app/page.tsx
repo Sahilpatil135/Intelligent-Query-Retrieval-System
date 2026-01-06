@@ -109,7 +109,8 @@ export default function Home() {
       formData.append("file", file);
       formData.append("user_id", user.id); // send user id to backend
 
-      const res = await axios.post("http://127.0.0.1:5000/upload", formData, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
+      const res = await axios.post(`${apiUrl}/upload`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data"
@@ -142,7 +143,8 @@ export default function Home() {
         return;
       }
 
-      const res = await axios.post("http://127.0.0.1:5000/query", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
+      const res = await axios.post(apiUrl + "/query", {
         query,
         top_k: 3,
       },

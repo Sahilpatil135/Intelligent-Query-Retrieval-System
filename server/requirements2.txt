@@ -1,0 +1,64 @@
+# Core web framework
+flask==3.1.2
+flask-cors==6.0.1
+
+# Database and authentication
+supabase==2.19.0
+PyJWT==2.10.1
+
+# HTTP requests
+requests==2.32.5
+
+# Environment variables
+python-dotenv==1.1.1
+
+# AI and ML
+sentence-transformers==5.1.0
+google-generativeai==0.8.5
+torch==2.8.0
+transformers==4.56.1
+numpy==2.3.3
+
+# Document processing
+pypdf==6.0.0
+python-docx==1.2.0
+
+# Text processing
+langchain==0.3.27
+langchain-text-splitters==0.3.11
+
+# Markdown processing
+markdown2==2.5.4
+markupsafe==3.0.2
+
+# Core dependencies (automatically included by main packages)
+certifi==2025.8.3
+charset-normalizer==3.4.3
+click==8.2.1
+colorama==0.4.6
+cryptography==46.0.1
+filelock==3.19.1
+gunicorn==23.0.0
+huggingface-hub==0.34.4
+idna==3.10
+itsdangerous==2.2.0
+Jinja2==3.1.6
+joblib==1.5.2
+lxml==6.0.1
+packaging==25.0
+pillow==11.3.0
+pydantic==2.11.9
+pydantic-settings==2.10.1
+pydantic_core==2.33.2
+pyparsing==3.2.4
+PyYAML==6.0.2
+regex==2025.9.1
+scikit-learn==1.7.2
+scipy==1.16.2
+six==1.17.0
+tokenizers==0.22.0
+tqdm==4.67.1
+typing_extensions==4.15.0
+urllib3==2.5.0
+Werkzeug==3.1.3
+
