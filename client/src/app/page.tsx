@@ -50,8 +50,11 @@ export default function Home() {
 
       data.forEach((item: any) => {
         const meta = item.metadata || {};
-        const fileName = meta.source;
+        const fullPath = meta.source;
         const fileUrl = meta.file_url;
+
+        const fileName = fullPath?.split("/").pop();
+
         if (fileName && !uniqueDocsMap.has(fileName)) {
           uniqueDocsMap.set(fileName, fileUrl);
         }
@@ -107,13 +110,13 @@ export default function Home() {
 
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("user_id", user.id); // send user id to backend
+      // formData.append("user_id", user.id); // send user id to backend
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
       const res = await axios.post(`${apiUrl}/upload`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data"
+          // "Content-Type": "multipart/form-data"
         },
       });
 

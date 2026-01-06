@@ -90,6 +90,7 @@ def health():
 @app.route("/upload", methods=["POST"])
 def upload_document():
     
+    print("Upload endpoint called")
     # 1. Verify user
     user, error = verify_user(request)
     if error:
@@ -113,13 +114,15 @@ def upload_document():
     path = f"{user_id}/{file_name}"
 
     # 5. Upload file to Supabase Storage bucket (private)
-    upload_res = supabase.storage.from_(BUCKET_NAME).upload(file_name, file_bytes)
+    # upload_res = supabase.storage.from_(BUCKET_NAME).upload(file_name, file_bytes)
+    upload_res = supabase.storage.from_(BUCKET_NAME).upload(path, file_bytes, {"content-type": file.content_type})
 
     if hasattr(upload_res, "error") and upload_res.error:
         return jsonify({"error": upload_res.error.get("message", "Upload failed")}), 500
     
     # 6. Generate a signed URL for the file (valid for 1 hour)
-    signed_url_res = supabase.storage.from_(BUCKET_NAME).create_signed_url(file_name, 3600)
+    # signed_url_res = supabase.storage.from_(BUCKET_NAME).create_signed_url(file_name, 3600)
+    signed_url_res = supabase.storage.from_(BUCKET_NAME).create_signed_url(path, 3600)
     signed_url = signed_url_res.get("signedURL") if isinstance(signed_url_res, dict) else None
 
     # 7️. Add to Supabase Vector (tagged with user_id)
@@ -133,6 +136,9 @@ def upload_document():
             "file_signed_url": signed_url
         })
     except Exception as e:
+        print("INGESTION ERROR >>>", e)
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 

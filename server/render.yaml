@@ -5,4 +5,5 @@ services:
     runtime: python-3.11.4
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    # startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --workers 1 --threads 1
