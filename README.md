@@ -172,3 +172,4 @@ Follow these steps to set up and run the project locally.
     ```
 
     The application will be available at `http://localhost:3000`. You can now sign up, log in, and start using the system.
+
