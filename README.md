@@ -9,7 +9,7 @@ The application features a secure, multi-tenant design where each user's documen
 
 - **Secure User Authentication**: Employs Supabase for robust user signup, login, and session management.
 - **Private Document Storage**: Each user's documents are stored securely in a private Supabase Storage bucket and are only accessible by them.
-- **Vector-Based Retrieval**: Uploaded documents (PDF, DOCX) are chunked, converted into vector embeddings using `sentence-transformers`, and stored in a Supabase PostgreSQL database with the `pgvector` extension.
+- **Vector-Based Retrieval**: Uploaded documents (PDF, DOCX) are chunked, converted into vector embeddings using Google Gemini `text-embedding-004`, and stored in a Supabase PostgreSQL database with the `pgvector` extension.
 - **Retrieval-Augmented Generation (RAG)**: When a user asks a question, the system retrieves the most relevant document chunks for that user and feeds them as context to Google's Gemini 2.5 Flash model to generate an accurate, source-grounded answer.
 - **Interactive Frontend**: A web interface built with Next.js allows users to manage documents, ask questions, and view their conversation history.
 - **Source Referencing**: The generated answers include references to the source documents used to formulate the response.
@@ -31,9 +31,9 @@ The system is composed of two main components: a client-side application and a s
 
 ## Technical Stack
 
--   **Frontend**: Next.js, React, Tailwind CSS, an Axios
+-   **Frontend**: Next.js (TypeScript), Tailwind CSS, an Axios
 -   **Backend**: Flask, Gunicorn
--   **Vector Embeddings**: `sentence-transformers` (all-MiniLM-L6-v2)
+-   **Vector Embeddings**: Google Gemini `text-embedding-004`
 -   **LLM**: Google Gemini 2.5 Flash
 -   **Database & Auth**: Supabase
 
@@ -51,51 +51,50 @@ Follow these steps to set up and run the project locally.
 ### 1. Supabase Project Setup
 
 1.  **Create a Project**: Go to [Supabase](https://supabase.com) and create a new project.
-2.  **Get API Keys**: In your project dashboard, go to **Project Settings** > **API**. You will need the **Project URL** and the `anon` **public key** for the client, and the `service_role` **secret key** for the server.
-3.  **Get JWT Secret**: Go to **Project Settings** > **API** > **JWT Settings** and copy the **JWT Secret**.
-4.  **Create Storage Bucket**: Go to the **Storage** section and create a new **private** bucket named `documents`.
-5.  **Database Setup**: Go to the **SQL Editor** and run the following queries to set up the `pgvector` extension, the `documents` table, and the search function.
+2. **Configure Authentication**: In the Supabase dashboard, go to **Authentication** and enable the required sign-in methods (e.g. Email/Password or OAuth providers).
+3.  **Get API Keys**: In your project dashboard, go to **Project Settings** > **API**. You will need the **Project URL** and the `anon` **public key** for the client, and the `service_role` **secret key** for the server.
+4.  **Get JWT Secret**: Go to **Project Settings** > **API** > **JWT Settings** and copy the **JWT Secret**.
+5.  **Create Storage Bucket**: Go to the **Storage** section and create a new **private** bucket named `documents`.
+6.  **Database Setup**: Go to the **SQL Editor** and run the following queries to set up the `pgvector` extension, the `documents` table, and the search function. Enable Row Level Security (RLS) on the `documents` table and add policies to restrict access to the authenticated user.
+
 
     ```sql
     -- Enable the pgvector extension
-    create extension if not exists vector with schema extensions;
+    create extension if not exists vector;
 
     -- Create the documents table to store chunks and embeddings
     create table documents (
-      id bigserial primary key,
-      user_id uuid references auth.users not null,
+      id uuid primary key default gen_random_uuid(),
       content text,
       metadata jsonb,
-      embedding vector(384) -- Dimension for 'all-MiniLM-L6-v2' model
+      embedding vector(768), -- Dimension for Gemini 'text-embeddings-004' model
+      user_id uuid not null references auth.users(id)
     );
 
     -- Create the RPC function for matching documents based on vector similarity
     create or replace function match_documents (
-      query_embedding vector(384),
+      query_embedding vector(768),
       match_count int,
       filter_user_id uuid
     ) returns table (
-      id bigint,
+      id uuid,
       content text,
       metadata jsonb,
-      embedding vector(384),
-      similarity float
+      embedding vector(768),
+      distance float
     )
-    language plpgsql
+    language sql
     as $$
-    begin
-      return query
       select
         id,
         content,
         metadata,
         embedding,
-        1 - (documents.embedding <=> query_embedding) as similarity
+        1 - (documents.embedding <=> query_embedding) as distance
       from documents
-      where documents.user_id = filter_user_id
+      where user_id = filter_user_id
       order by documents.embedding <=> query_embedding
       limit match_count;
-    end;
     $$;
     ```
 
@@ -130,14 +129,13 @@ Follow these steps to set up and run the project locally.
     ```env
     # Supabase credentials
     SUPABASE_URL="YOUR_SUPABASE_PROJECT_URL"
-    SUPABASE_KEY="YOUR_SUPABASE_SERVICE_ROLE_KEY"
-    SUPABASE_SERVICE_KEY="YOUR_SUPABASE_SERVICE_ROLE_KEY" # Duplicated for compatibility
+    SUPABASE_KEY="YOUR_SUPABASE_ANON_KEY"
+    SUPABASE_SERVICE_KEY="YOUR_SUPABASE_SERVICE_ROLE_KEY"
     SUPABASE_JWT_SECRET="YOUR_SUPABASE_JWT_SECRET"
 
     # LLM API Key
     GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
-    GEMINI_MODEL="YOUR_GEMINI_MODEL"
-    GEMINI_THINKING_BUDGET=0
+    GEMINI_MODEL="YOUR_GEMINI_MODEL"    
     ```
 
 5.  Run the Flask server.
